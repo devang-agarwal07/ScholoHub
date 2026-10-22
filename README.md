@@ -1,140 +1,295 @@
-# Adaptive Scholarship Management System
+# 🎓 Adaptive Scholarship Management System
 
-A full-stack scholarship management platform built with **React 18**, **Express**, **Prisma**, and **PostgreSQL**. Features role-based access control, document verification workflows, automated notification pipelines, and comprehensive reporting.
+A full-stack scholarship management platform designed to simplify and digitize the complete scholarship application process. The system manages scholarship discovery, applications, document verification, evaluation, approval, and reporting through a role-based workflow.
+
+## ✨ Features
+
+### 👨‍🎓 Student
+- Browse and search available scholarships
+- Multi-step scholarship application
+- Auto-save application progress
+- Upload required documents
+- Track application status
+- View application history
+
+### 🔍 Verifier
+- View pending document verification requests
+- Review uploaded documents
+- Verify or reject documents
+- Add remarks and feedback
+- Automatically progress applications after verification
+
+### 👥 Committee Member
+- Review verified applications
+- View student information and personal statements
+- Approve, reject, or waitlist applications
+- Track application workflow history
+
+### 🛡️ Administrator
+- Dashboard with KPIs and analytics
+- Create, update, and manage scholarships
+- Manage users and roles
+- Track scholarship budgets and utilization
+- Generate reports
+- Export reports in CSV/PDF format
 
 ## 🏗️ Architecture
 
-```
-scholarship-system/
-├── backend/           # Node.js + Express + Prisma + TypeScript
-│   ├── prisma/        # Schema, migrations, seed
-│   ├── src/
-│   │   ├── config/    # Env, database, S3 configs
-│   │   ├── middleware/# Auth, RBAC, error handler, rate limiter
-│   │   ├── utils/     # JWT, hashing, S3 upload, PDF gen
-│   │   ├── jobs/      # BullMQ queues and workers
-│   │   ├── modules/   # Feature modules (auth, scholarship, etc.)
-│   │   └── app.ts     # Express entry point
-│   └── Dockerfile
-├── frontend/          # React 18 + Vite + TypeScript + Tailwind
-│   ├── src/
-│   │   ├── api/       # Axios client and API functions
-│   │   ├── store/     # Zustand auth store
-│   │   ├── hooks/     # TanStack Query hooks
-│   │   ├── components/# UI + Layout + Shared components
-│   │   ├── pages/     # Role-based page modules
-│   │   └── App.tsx    # Router with role-based routing
-│   └── Dockerfile
-├── docker-compose.yml # Full stack orchestration
-└── .github/workflows/ # CI/CD pipeline
+```text
+Scholarship Management System
+│
+├── Frontend
+│   └── React + TypeScript + Vite + Tailwind CSS
+│
+├── Backend
+│   └── Node.js + Express + TypeScript
+│
+├── Database
+│   └── PostgreSQL + Prisma ORM
+│
+├── Cache & Background Jobs
+│   └── Redis + BullMQ
+│
+└── File Storage
+    └── AWS S3 / MinIO
 ```
 
-## 🚀 Quick Start
+## 🔄 Application Workflow
+
+```text
+Student
+   │
+   ▼
+Browse Scholarships
+   │
+   ▼
+Create Application
+   │
+   ▼
+Upload Documents
+   │
+   ▼
+Document Verification
+   │
+   ├── Rejected ──► Resubmit Documents
+   │
+   └── Verified
+          │
+          ▼
+    Committee Review
+          │
+     ┌────┼────────┐
+     ▼    ▼        ▼
+  Approve Reject  Waitlist
+     │
+     ▼
+Scholarship Award
+```
+
+## 🔐 Role-Based Access Control
+
+The system provides different permissions for each user role:
+
+| Role | Responsibilities |
+|---|---|
+| Student | Apply for scholarships and track applications |
+| Verifier | Review and verify submitted documents |
+| Committee Member | Evaluate and make decisions on applications |
+| Admin | Manage users, scholarships, reports, and budgets |
+
+Authentication uses **JWT-based access and refresh tokens**.
+
+## 🛠️ Tech Stack
+
+| Category | Technology |
+|---|---|
+| Frontend | React 18, TypeScript, Vite |
+| Styling | Tailwind CSS |
+| UI | shadcn/ui |
+| State Management | Zustand |
+| Server State | TanStack Query |
+| Charts | Recharts |
+| Backend | Node.js, Express, TypeScript |
+| ORM | Prisma |
+| Database | PostgreSQL |
+| Cache | Redis |
+| Background Jobs | BullMQ |
+| Storage | AWS S3 / MinIO |
+| Authentication | JWT |
+| Validation | Zod |
+| Containerization | Docker |
+
+## 📁 Project Structure
+
+```text
+scholarship-system/
+│
+├── backend/
+│   ├── prisma/
+│   │   ├── schema.prisma
+│   │   ├── migrations/
+│   │   └── seed/
+│   │
+│   ├── src/
+│   │   ├── config/
+│   │   ├── middleware/
+│   │   ├── utils/
+│   │   ├── jobs/
+│   │   ├── modules/
+│   │   └── app.ts
+│   │
+│   └── Dockerfile
+│
+├── frontend/
+│   ├── src/
+│   │   ├── api/
+│   │   ├── store/
+│   │   ├── hooks/
+│   │   ├── components/
+│   │   ├── pages/
+│   │   └── App.tsx
+│   │
+│   └── Dockerfile
+│
+├── docker-compose.yml
+├── render.yaml
+└── .github/
+    └── workflows/
+```
+
+## 🚀 Getting Started
 
 ### Prerequisites
+
+Make sure you have the following installed:
+
 - Node.js 20+
 - PostgreSQL 16+
 - Redis 7+
 - npm
+- Git
 
-### 1. Clone & Install
+### Backend Setup
 
 ```bash
-# Backend
 cd backend
-cp .env.example .env
+
 npm install
+
 npx prisma generate
-npx prisma db push
-npx prisma db seed
 
-# Frontend
-cd ../frontend
+npx prisma db push
+
+npx prisma db seed
+```
+
+Create and configure your `.env` file with the required database, Redis, authentication, and storage variables.
+
+### Frontend Setup
+
+```bash
+cd frontend
+
 npm install
 ```
 
-### 2. Run Development Servers
+### Run Backend
 
 ```bash
-# Terminal 1 - Backend
 cd backend
-npm run dev
 
-# Terminal 2 - Frontend
-cd frontend
 npm run dev
 ```
 
-### 3. Docker (Full Stack)
+### Run Frontend
+
+Open another terminal:
+
+```bash
+cd frontend
+
+npm run dev
+```
+
+## 🐳 Docker
+
+The complete application can be started using Docker:
 
 ```bash
 docker-compose up --build
 ```
 
-## 🔐 Default Credentials
-
-| Role | Email | Password |
-|------|-------|----------|
-| Super Admin | admin@scholarship.edu | Password123! |
-| Verifier | verifier@scholarship.edu | Password123! |
-| Committee | committee@scholarship.edu | Password123! |
-| Student | student@scholarship.edu | Password123! |
-
-## 📋 Features
-
-### For Students
-- Browse and search scholarships
-- Multi-step application form with auto-save
-- Document upload with drag-and-drop
-- Real-time application status tracking
-
-### For Verifiers
-- Document review queue
-- Verify/reject with remarks
-- Auto-workflow progression on verification
-
-### For Committee Members
-- Application review with personal statements
-- Approve/reject/waitlist actions
-- Workflow history tracking
-
-### For Admins
-- Dashboard with KPIs and charts
-- Scholarship CRUD management
-- User management
-- Reports with CSV/PDF export
-- Budget tracking and utilization
-
-## 🛠️ Tech Stack
-
-| Layer | Technology |
-|-------|-----------|
-| Frontend | React 18, TypeScript, Vite, Tailwind CSS |
-| State | Zustand (auth), TanStack Query (server) |
-| UI | shadcn/ui components, Recharts |
-| Backend | Express, TypeScript, Prisma ORM |
-| Database | PostgreSQL 16 |
-| Cache/Queue | Redis 7, BullMQ |
-| Storage | AWS S3 / MinIO |
-| Auth | JWT (access + refresh tokens) |
-| Validation | Zod (both frontend & backend) |
-
-## 📡 API Endpoints
+## 📡 API Overview
 
 | Module | Endpoint | Description |
-|--------|----------|-------------|
-| Auth | POST /api/auth/register | Register new user |
-| Auth | POST /api/auth/login | Login |
-| Auth | POST /api/auth/refresh | Refresh token |
-| Scholarship | GET /api/scholarships | List scholarships |
-| Scholarship | POST /api/scholarships | Create (admin) |
-| Application | POST /api/applications | Create application |
-| Application | POST /api/applications/:id/submit | Submit |
-| Document | POST /api/documents/upload | Upload document |
-| Document | PUT /api/documents/:id/review | Review (verifier) |
-| Workflow | POST /api/workflow/:id/action | Take action |
-| Report | GET /api/reports/summary | Dashboard KPIs |
+|---|---|---|
+| Auth | `POST /api/auth/register` | Register a new user |
+| Auth | `POST /api/auth/login` | Login |
+| Auth | `POST /api/auth/refresh` | Refresh authentication token |
+| Scholarship | `GET /api/scholarships` | List scholarships |
+| Scholarship | `POST /api/scholarships` | Create scholarship |
+| Application | `POST /api/applications` | Create application |
+| Application | `POST /api/applications/:id/submit` | Submit application |
+| Documents | `POST /api/documents/upload` | Upload document |
+| Documents | `PUT /api/documents/:id/review` | Review document |
+| Workflow | `POST /api/workflow/:id/action` | Perform workflow action |
+| Reports | `GET /api/reports/summary` | Get dashboard statistics |
+
+## 🎯 Project Objective
+
+The main objective of this project is to create a centralized digital platform that makes scholarship management **faster, more transparent, and easier to manage**.
+
+It replaces manual processes involving paperwork, emails, and spreadsheets with a structured workflow:
+
+**Scholarship Discovery → Application → Document Verification → Evaluation → Decision → Reporting**
+
+## 📊 Key Highlights
+
+- Full-stack web application
+- Role-based authentication and authorization
+- Scholarship management
+- Multi-step applications
+- Document upload and verification
+- Application status tracking
+- Committee evaluation workflow
+- Admin dashboard and analytics
+- Budget tracking
+- CSV/PDF reporting
+- Redis background processing
+- PostgreSQL database
+- Prisma ORM
+- Docker support
+- CI/CD workflow
+
+## 📚 Learning Outcomes
+
+This project provides practical experience in:
+
+- Full-stack web development
+- React and TypeScript
+- REST API development
+- Database design
+- PostgreSQL and Prisma
+- Authentication and authorization
+- Role-Based Access Control
+- File upload and document management
+- Redis and background job processing
+- API validation
+- Docker and deployment
+- Dashboard development
+- Data visualization
+
+## 🤝 Contributing
+
+Contributions are welcome.
+
+1. Fork the repository
+2. Create a new branch
+3. Make your changes
+4. Commit your changes
+5. Push the branch
+6. Create a Pull Request
 
 ## 📄 License
 
-MIT
+This project is licensed under the **MIT License**.
