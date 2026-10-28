@@ -22,6 +22,8 @@ import { startReportWorker } from './jobs/workers/reportWorker';
 
 const app = express();
 const PORT = parseInt(process.env.PORT || '5000', 10);
+const frontendDir = path.resolve(__dirname, '../../frontend/dist');
+const serveFrontend = process.env.SERVE_FRONTEND === 'true' && fs.existsSync(path.join(frontendDir, 'index.html'));
 
 const uploadsDir = path.resolve(process.cwd(), 'uploads');
 if (!fs.existsSync(uploadsDir)) {
@@ -45,6 +47,10 @@ app.use('/uploads', express.static(uploadsDir));
 
 // ─── HEALTH CHECK ───────────────────────────────────────────
 app.get('/', (_req, res) => {
+  if (serveFrontend) {
+    res.sendFile(path.join(frontendDir, 'index.html'));
+    return;
+  }
   res.send('<h1>Scholarship Management API is running! 🚀</h1><p>Go to the frontend portal to log in.</p>');
 });
 
@@ -63,6 +69,18 @@ app.use('/api/applications', applicationRoutes);
 app.use('/api/documents', documentRoutes);
 app.use('/api/workflow', workflowRoutes);
 app.use('/api/reports', reportRoutes);
+
+// A single Render web service can host the SPA and API on the same origin.
+if (serveFrontend) {
+  app.use(express.static(frontendDir));
+  app.get('*', (req, res, next) => {
+    if (req.path === '/api' || req.path.startsWith('/api/') || req.path === '/uploads' || req.path.startsWith('/uploads/')) {
+      next();
+      return;
+    }
+    res.sendFile(path.join(frontendDir, 'index.html'));
+  });
+}
 
 // ─── 404 HANDLER ────────────────────────────────────────────
 app.use((_req, res) => {

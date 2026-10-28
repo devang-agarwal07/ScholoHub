@@ -2,7 +2,7 @@
 
 Repository: https://github.com/devang-agarwal07/ScholoHub
 
-Use MongoDB Atlas for the database, a Render Web Service for `backend/`, and a Render Static Site for `frontend/`. You do not need to run a local MongoDB server. These instructions deploy the new ScholoHub repository; older Render services linked to another repository do not automatically switch to it.
+Use MongoDB Atlas for the database and the single Render Web Service defined in `render.yaml` for the app. The backend serves the compiled React frontend and API on one HTTPS origin. Separate frontend/backend deployment is also described below. You do not need to run a local MongoDB server. These instructions deploy the new ScholoHub repository; older Render services linked to another repository do not automatically switch to it.
 
 ## 1. Create or select the MongoDB Atlas cluster
 
@@ -48,7 +48,27 @@ npm run prisma:seed
 
 New demo accounts are `admin@scholarship.edu`, `verifier@scholarship.edu`, `committee@scholarship.edu`, and `student@scholarship.edu`, with password `Password123!`. This seed preserves existing data and passwords and refuses to run with `NODE_ENV=production`. Do not use these shared demo credentials for a real deployment; register your own accounts with unique passwords instead. The current registration form supports choosing an account role and is intended for a demonstration workflow.
 
-## 3. Deploy the backend on Render
+## 3. Deploy the entire app on one Render service (recommended)
+
+Create a Render **Web Service** connected to `devang-agarwal07/ScholoHub`, branch `main`. Leave **Root Directory empty** and use:
+
+| Setting | Value |
+| --- | --- |
+| Build Command | `cd backend && npm ci && npm run build && cd ../frontend && npm ci && npm run build` |
+| Start Command | `cd backend && npm run start:cloud` |
+| Health Check | `/api/health` |
+| `NODE_ENV` | `production` |
+| `SERVE_FRONTEND` | `true` |
+| `VITE_API_URL` | `/api` |
+| `DATABASE_URL` | Your Atlas URI |
+| `JWT_SECRET` | A random secret of at least 32 characters |
+| `JWT_REFRESH_SECRET` | A different random secret of at least 32 characters |
+
+Add Render's outbound IP ranges to Atlas as described in step 1, then deploy. The service URL serves the React app, its deep links, and `/api/*`. Refresh tokens use the HTTP-only cookie, so they do not need to be exposed in browser storage. If setting `FRONTEND_URL` for password-reset links, use this same service URL; Render's `RENDER_EXTERNAL_URL` is used when it is omitted.
+
+For uploads, configure the Cloudinary variables described below. Once the single service is live, skip the separate service setup and go to **Verify the deployed application**.
+
+## Alternative: deploy the backend and frontend separately
 
 In https://dashboard.render.com/, choose **New → Web Service**, connect GitHub, and select `devang-agarwal07/ScholoHub`.
 
@@ -82,7 +102,7 @@ Create the service and add its outbound IP ranges in Atlas Network Access. If th
 
 Copy the backend's actual HTTPS URL. Verify `https://YOUR_BACKEND.onrender.com/api/health` returns `status: ok`. This endpoint checks the API process; use a login or the database checks above to verify database access.
 
-## 4. Deploy the frontend on Render
+### Deploy the frontend on Render
 
 Choose **New → Static Site** and select the same ScholoHub repository.
 

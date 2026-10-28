@@ -166,7 +166,7 @@ class AuthService {
     }
 
     const resetToken = crypto.randomBytes(32).toString('hex');
-    const resetUrl = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/reset-password?token=${resetToken}`;
+    const resetUrl = `${process.env.FRONTEND_URL || process.env.RENDER_EXTERNAL_URL || 'http://localhost:5173'}/reset-password?token=${resetToken}`;
 
     // Store hashed token in refreshToken field temporarily
     const hashedToken = await hashPassword(resetToken);

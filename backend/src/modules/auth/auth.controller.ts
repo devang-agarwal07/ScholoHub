@@ -16,7 +16,7 @@ const loginSchema = z.object({
 });
 
 const refreshSchema = z.object({
-  refreshToken: z.string().min(1, 'Refresh token is required'),
+  refreshToken: z.string().min(1, 'Refresh token is required').optional(),
 });
 
 const forgotPasswordSchema = z.object({
@@ -75,7 +75,7 @@ export class AuthController {
 
   async refresh(req: Request, res: Response, next: NextFunction) {
     try {
-      const { refreshToken } = refreshSchema.parse(req.body);
+      const { refreshToken } = refreshSchema.parse(req.body || {});
       const cookieToken = req.cookies?.refreshToken;
       const token = refreshToken || cookieToken;
 

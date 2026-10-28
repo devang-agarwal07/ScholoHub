@@ -172,7 +172,7 @@ Use MongoDB Atlas for the cloud database. Hosting the database does not require 
 5. Set the same Atlas URI as the backend's `DATABASE_URL` in Render. Use `npm run start:cloud` as the start command so indexes are synchronized before the server starts. Existing data is retained; conflicting unique indexes cause deployment to stop instead of resetting the database.
 6. Verify the cloud connection using `npm run db:check`, then check login, applications and reports through the deployed app.
 
-`render.yaml` defines `scholohub-backend` and `scholohub-frontend`. Supply the Atlas URI and the actual public frontend/backend URLs during setup; they are not copied from an older deployment. See [DEPLOYMENT.md](DEPLOYMENT.md) for the exact commands and settings. A separate Vercel deployment is optional when the frontend is hosted on Render.
+`render.yaml` defines a `scholohub` web service that serves the React frontend and API on one HTTPS origin. Supply the Atlas URI as a backend secret. See [DEPLOYMENT.md](DEPLOYMENT.md) for the exact commands and settings, including the option to host the frontend separately. A separate Vercel deployment is optional.
 
 The upload helper uses Cloudinary when `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, and `CLOUDINARY_API_SECRET` are configured. Configure persistent cloud file storage for hosted document uploads; MongoDB stores metadata, not the uploaded files.
 
