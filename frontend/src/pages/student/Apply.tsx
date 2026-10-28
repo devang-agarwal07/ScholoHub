@@ -5,7 +5,7 @@ import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { scholarshipApi } from '../../api/scholarship.api';
-import { useCreateApplication, useUpdateApplication, useUploadDocument, useSubmitApplication, useMyApplications } from '../../hooks/useApplications';
+import { useCreateApplication, useUpdateApplication, useUploadDocument, useSubmitApplication, useMyApplications, useApplication } from '../../hooks/useApplications';
 import { useAuthStore } from '../../store/authStore';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
@@ -70,6 +70,17 @@ export default function Apply() {
   const updateMutation = useUpdateApplication();
   const uploadMutation = useUploadDocument();
   const submitMutation = useSubmitApplication();
+  const { data: savedApplication } = useApplication(applicationId || '');
+  const requiredDocumentTypes = scholarship?.requiredDocuments || [];
+  const optionalDocumentTypes = ['marksheet', 'income_certificate', 'id_proof', 'institution_letter', 'supporting_document'];
+  const savedDocs = Object.fromEntries((savedApplication?.documents || []).map((doc) => [
+    doc.documentType, { fileName: doc.fileName, status: doc.status },
+  ]));
+  const displayedDocs = { ...savedDocs, ...uploadedDocs };
+  const documentTypes = [...new Set([
+    ...(requiredDocumentTypes.length ? requiredDocumentTypes : optionalDocumentTypes),
+    ...Object.keys(displayedDocs),
+  ])];
 
   // Pre-fill personal info from profile or existing application
   useEffect(() => {
@@ -173,11 +184,11 @@ export default function Apply() {
   };
 
   const handleDocUpload = async (file: File, documentType: string) => {
-    if (!applicationId) return;
-    await uploadMutation.mutateAsync({ file, applicationId, documentType });
+    if (!applicationId) throw new Error('Your draft is not ready yet. Save the previous step, then try again.');
+    const document = await uploadMutation.mutateAsync({ file, applicationId, documentType });
     setUploadedDocs((prev) => ({
       ...prev,
-      [documentType]: { fileName: file.name, status: 'PENDING' },
+      [documentType]: { fileName: document.fileName, status: document.status },
     }));
   };
 
@@ -336,18 +347,25 @@ export default function Apply() {
           {/* Step 4: Documents */}
           {currentStep === 4 && (
             <div className="space-y-4">
-              {scholarship?.requiredDocuments?.map((docType) => (
+              {requiredDocumentTypes.length === 0 && (
+                <p className="text-sm text-muted-foreground">
+                  No documents are mandatory for this scholarship. You can add optional supporting documents below, or continue without uploading.
+                </p>
+              )}
+              <p className="text-xs text-muted-foreground">Upload PDF, JPG, or PNG files up to 5 MB each. Click a box to choose a file, or drag and drop it.</p>
+              {documentTypes.map((docType) => (
                 <DocumentUploader
                   key={docType}
                   documentType={docType}
-                  label={docType.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase())}
+                  label={`${docType.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase())}${requiredDocumentTypes.includes(docType) ? '' : ' (optional)'}`}
                   onUpload={handleDocUpload}
-                  existingFile={uploadedDocs[docType]}
+                  existingFile={displayedDocs[docType]}
+                  disabled={!applicationId || uploadMutation.isPending}
                 />
               ))}
               <div className="flex justify-between pt-4">
-                <Button type="button" variant="outline" onClick={goBack}><ChevronLeft className="w-4 h-4 mr-1" /> Back</Button>
-                <Button onClick={() => setCurrentStep(5)}>Next <ChevronRight className="w-4 h-4 ml-1" /></Button>
+                <Button type="button" variant="outline" onClick={goBack} disabled={uploadMutation.isPending}><ChevronLeft className="w-4 h-4 mr-1" /> Back</Button>
+                <Button onClick={() => setCurrentStep(5)} disabled={uploadMutation.isPending}>Next <ChevronRight className="w-4 h-4 ml-1" /></Button>
               </div>
             </div>
           )}
@@ -378,7 +396,7 @@ export default function Apply() {
                 </div>
                 <div className="p-4 rounded-lg bg-slate-50">
                   <h4 className="font-medium mb-2">Documents</h4>
-                  <p className="text-sm">{Object.keys(uploadedDocs).length} document(s) uploaded</p>
+                  <p className="text-sm">{Object.keys(displayedDocs).length} document(s) uploaded</p>
                 </div>
               </div>
 

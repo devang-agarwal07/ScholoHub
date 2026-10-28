@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react';
-import { useDropzone } from 'react-dropzone';
+import { useDropzone, type FileRejection } from 'react-dropzone';
 import { Upload, X, FileText, CheckCircle, AlertCircle } from 'lucide-react';
 import { Button } from './ui/button';
 import { cn } from '../lib/utils';
@@ -42,6 +42,14 @@ export default function DocumentUploader({
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
+    onDropRejected: (rejectedFiles: FileRejection[]) => {
+      const rejection = rejectedFiles[0]?.errors[0];
+      setError(rejection?.code === 'file-too-large'
+        ? 'This file is too large. Choose a file up to 5 MB.'
+        : rejection?.code === 'too-many-files'
+          ? 'Choose one file at a time.'
+          : 'Choose a PDF, JPG, or PNG file.');
+    },
     accept: {
       'application/pdf': ['.pdf'],
       'image/jpeg': ['.jpg', '.jpeg'],
@@ -73,7 +81,7 @@ export default function DocumentUploader({
           <span className="text-sm flex-1 truncate">{existingFile.fileName}</span>
           {!disabled && (
             <div {...getRootProps()}>
-              <input {...getInputProps()} />
+              <input {...getInputProps({ 'aria-label': `Replace ${label}` })} />
               <Button variant="outline" size="sm" type="button">
                 Replace
               </Button>
@@ -91,7 +99,7 @@ export default function DocumentUploader({
             (disabled || uploading) && 'opacity-50 cursor-not-allowed'
           )}
         >
-          <input {...getInputProps()} />
+          <input {...getInputProps({ 'aria-label': `Upload ${label}` })} />
           {uploading ? (
             <div className="flex flex-col items-center gap-2">
               <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
@@ -110,7 +118,7 @@ export default function DocumentUploader({
       )}
 
       {error && (
-        <div className="flex items-center gap-2 text-sm text-red-500">
+        <div role="alert" className="flex items-center gap-2 text-sm text-red-500">
           <X className="w-4 h-4" />
           {error}
         </div>
