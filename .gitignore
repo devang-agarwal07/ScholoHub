@@ -19,6 +19,17 @@ out/
 # Local storage uploads
 uploads/
 
+# Persistent local MongoDB storage
+backend/mongo-data/
+backend/mongodb-data/
+
+# Machine-specific experimental launcher (not part of the application)
+/backend/dev-start.ts
+
+# TypeScript incremental build caches and local deployment links
+*.tsbuildinfo
+.vercel/
+
 # Environment files
 .env
 .env.local

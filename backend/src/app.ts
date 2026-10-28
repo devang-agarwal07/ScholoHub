@@ -3,6 +3,7 @@ import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
 import cookieParser from 'cookie-parser';
+import fs from 'fs';
 import path from 'path';
 import { globalErrorHandler } from './middleware/errorHandler';
 import { generalLimiter } from './middleware/rateLimiter';
@@ -22,8 +23,15 @@ import { startReportWorker } from './jobs/workers/reportWorker';
 const app = express();
 const PORT = parseInt(process.env.PORT || '5000', 10);
 
+const uploadsDir = path.resolve(process.cwd(), 'uploads');
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true });
+}
+
 // ─── GLOBAL MIDDLEWARE ──────────────────────────────────────
-app.use(helmet());
+app.use(helmet({
+  crossOriginResourcePolicy: { policy: 'cross-origin' }
+}));
 app.use(cors({
   origin: true, // Allow any origin dynamically (fixes login issues)
   credentials: true,
@@ -33,7 +41,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 app.use(morgan('dev'));
 app.use(generalLimiter);
-app.use('/uploads', express.static(path.join(__dirname, '../../uploads')));
+app.use('/uploads', express.static(uploadsDir));
 
 // ─── HEALTH CHECK ───────────────────────────────────────────
 app.get('/', (_req, res) => {

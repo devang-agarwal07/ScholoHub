@@ -1,6 +1,8 @@
-# 🎓 Adaptive Scholarship Management System
+# 🎓 ScholoHub — Adaptive Scholarship Management System
 
 A full-stack scholarship management platform designed to simplify and digitize the complete scholarship application process. The system manages scholarship discovery, applications, document verification, evaluation, approval, and reporting through a role-based workflow.
+
+**Cloud deployment:** follow [DEPLOYMENT.md](DEPLOYMENT.md) to create the MongoDB Atlas database, deploy the backend and frontend on Render, and connect them. Repository: [devang-agarwal07/ScholoHub](https://github.com/devang-agarwal07/ScholoHub).
 
 ## ✨ Features
 
@@ -45,7 +47,7 @@ Scholarship Management System
 │   └── Node.js + Express + TypeScript
 │
 ├── Database
-│   └── PostgreSQL + Prisma ORM
+│   └── MongoDB replica set + Prisma ORM
 │
 ├── Cache & Background Jobs
 │   └── Redis + BullMQ
@@ -111,7 +113,7 @@ Authentication uses **JWT-based access and refresh tokens**.
 | Charts | Recharts |
 | Backend | Node.js, Express, TypeScript |
 | ORM | Prisma |
-| Database | PostgreSQL |
+| Database | MongoDB |
 | Cache | Redis |
 | Background Jobs | BullMQ |
 | Storage | AWS S3 / MinIO |
@@ -159,12 +161,27 @@ scholarship-system/
 
 ## 🚀 Getting Started
 
+### Hosted database (MongoDB Atlas)
+
+Use MongoDB Atlas for the cloud database. Hosting the database does not require moving the frontend or backend to another provider.
+
+1. Create/select an Atlas cluster and a database user with `readWrite` access to `scholarship_db`.
+2. Add the app server's outbound IP addresses to Atlas Network Access. Add your computer's IP as well if running the app or setup commands locally.
+3. Put the Atlas driver URI in `backend/.env` as `DATABASE_URL`, including `/scholarship_db` before the query string. Use the format in `.env.example`; URL-encode special characters in the database password. Keep this URI out of source control and frontend environment variables.
+4. From `backend/`, run `npm run db:setup` to create the nine collections and indexes in Atlas. The demo seed is optional and disabled in production.
+5. Set the same Atlas URI as the backend's `DATABASE_URL` in Render. Use `npm run start:cloud` as the start command so indexes are synchronized before the server starts. Existing data is retained; conflicting unique indexes cause deployment to stop instead of resetting the database.
+6. Verify the cloud connection using `npm run db:check`, then check login, applications and reports through the deployed app.
+
+`render.yaml` defines `scholohub-backend` and `scholohub-frontend`. Supply the Atlas URI and the actual public frontend/backend URLs during setup; they are not copied from an older deployment. See [DEPLOYMENT.md](DEPLOYMENT.md) for the exact commands and settings. A separate Vercel deployment is optional when the frontend is hosted on Render.
+
+The upload helper uses Cloudinary when `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, and `CLOUDINARY_API_SECRET` are configured. Configure persistent cloud file storage for hosted document uploads; MongoDB stores metadata, not the uploaded files.
+
 ### Prerequisites
 
 Make sure you have the following installed:
 
 - Node.js 20+
-- PostgreSQL 16+
+- MongoDB Community Server and MongoDB Shell (`mongosh` on PATH), or Docker
 - Redis 7+
 - npm
 - Git
@@ -176,14 +193,27 @@ cd backend
 
 npm install
 
-npx prisma generate
+# Configure backend/.env using .env.example first.
+# Windows: start the persistent local MongoDB replica set.
+npm run db:start
 
-npx prisma db push
+# Create the collections and indexes, and verify the connection.
+npm run db:setup
 
-npx prisma db seed
+# Optional: add demo users, scholarships and a draft application.
+npm run prisma:seed
 ```
 
 Create and configure your `.env` file with the required database, Redis, authentication, and storage variables.
+
+The local connection is `mongodb://127.0.0.1:27018/scholarship_db?replicaSet=rs0&directConnection=true&serverSelectionTimeoutMS=5000`.
+`db:start` stores data in `backend/mongodb-data/`, binds only to localhost, and can be run again after restarting your computer. It leaves the MongoDB service on port 27017 and older `backend/mongo-data/` files untouched. If MongoDB is installed elsewhere, run `powershell -File scripts/start-mongodb.ps1 -MongodPath "C:\path\to\mongod.exe" -MongoshPath "C:\path\to\mongosh.exe"` from `backend/`.
+
+For MongoDB Atlas, put your Atlas connection string (including the database name `scholarship_db`) in `DATABASE_URL` and skip `db:start`. Prisma transactions require a replica set. Use `prisma db push` for MongoDB schema/index changes; Prisma Migrate does not support MongoDB.
+
+Demo accounts are `admin@scholarship.edu` (super admin), `verifier@scholarship.edu`, `committee@scholarship.edu`, and `student@scholarship.edu`. Newly created demo accounts use `Password123!`. Seeding preserves existing records and passwords, and is disabled in production. Demo scholarship deadlines are 90 and 120 days after their initial creation.
+
+See [MongoDB database design and commands](backend/prisma/README.md) for the collection structure and verification steps.
 
 ### Frontend Setup
 
@@ -216,8 +246,10 @@ npm run dev
 The complete application can be started using Docker:
 
 ```bash
-docker-compose up --build
+docker compose up --build
 ```
+
+Docker starts its own MongoDB replica set and keeps its data in the `mongodb_data` volume. Choose either the Windows MongoDB setup or Docker because both publish port 27018. For just the database, run `docker compose up -d mongodb mongodb-init`, then run `npm run db:setup` from `backend/`. To add demo data to the full Docker stack, use `docker compose exec backend npm run prisma:seed`.
 
 ## 📡 API Overview
 
@@ -256,7 +288,7 @@ It replaces manual processes involving paperwork, emails, and spreadsheets with 
 - Budget tracking
 - CSV/PDF reporting
 - Redis background processing
-- PostgreSQL database
+- MongoDB database with persistent storage and a replica set
 - Prisma ORM
 - Docker support
 - CI/CD workflow
@@ -269,7 +301,7 @@ This project provides practical experience in:
 - React and TypeScript
 - REST API development
 - Database design
-- PostgreSQL and Prisma
+- MongoDB and Prisma
 - Authentication and authorization
 - Role-Based Access Control
 - File upload and document management

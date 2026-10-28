@@ -22,6 +22,7 @@ model User {
   createdAt       DateTime         @default(now())
   updatedAt       DateTime         @updatedAt
 
+  @@index([role, createdAt(sort: Desc)])
   @@map("users")
 }
 
@@ -59,6 +60,8 @@ model Scholarship {
   createdAt           DateTime      @default(now())
   updatedAt           DateTime      @updatedAt
 
+  @@index([isActive, applicationDeadline])
+  @@index([academicYear])
   @@map("scholarships")
 }
 
@@ -79,6 +82,10 @@ model Application {
   updatedAt         DateTime          @updatedAt
 
   @@unique([studentId, scholarshipId])
+  @@index([studentId, updatedAt(sort: Desc)])
+  @@index([scholarshipId, status])
+  @@index([status, updatedAt(sort: Desc)])
+  @@index([createdAt(sort: Desc)])
   @@map("applications")
 }
 
@@ -94,6 +101,8 @@ model Document {
   reviews       DocumentReview[]
   uploadedAt    DateTime       @default(now())
 
+  @@index([applicationId, documentType])
+  @@index([status, uploadedAt])
   @@map("documents")
 }
 
@@ -107,6 +116,8 @@ model DocumentReview {
   remarks    String?
   reviewedAt DateTime       @default(now())
 
+  @@index([documentId, reviewedAt(sort: Desc)])
+  @@index([reviewerId, reviewedAt(sort: Desc)])
   @@map("document_reviews")
 }
 
@@ -121,6 +132,8 @@ model WorkflowAction {
   remarks       String?
   createdAt     DateTime      @default(now())
 
+  @@index([applicationId, createdAt])
+  @@index([actorId, createdAt(sort: Desc)])
   @@map("workflow_actions")
 }
 
@@ -132,6 +145,8 @@ model Notification {
   isRead    Boolean  @default(false)
   createdAt DateTime @default(now())
 
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([userId, isRead])
   @@map("notifications")
 }
 
@@ -144,5 +159,7 @@ model AuditLog {
   metadata  Json?
   createdAt DateTime @default(now())
 
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([entity, entityId, createdAt(sort: Desc)])
   @@map("audit_logs")
 }

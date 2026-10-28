@@ -9,20 +9,9 @@ on:
 jobs:
   test-backend:
     runs-on: ubuntu-latest
-    services:
-      postgres:
-        image: postgres:16-alpine
-        env:
-          POSTGRES_USER: test_user
-          POSTGRES_PASSWORD: test_pass
-          POSTGRES_DB: test_db
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
+    env:
+      DATABASE_URL: mongodb://127.0.0.1:27017/test_db?replicaSet=rs0&directConnection=true&serverSelectionTimeoutMS=5000
+      NODE_ENV: test
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -31,10 +20,19 @@ jobs:
           cache: npm
           cache-dependency-path: backend/package-lock.json
       - run: cd backend && npm ci
-      - run: cd backend && npx prisma generate
+      - name: Start MongoDB replica set
+        run: |
+          docker run -d --name mongodb -p 27017:27017 mongo:8.0 --replSet rs0 --bind_ip_all
+          for attempt in $(seq 1 30); do
+            if docker exec mongodb mongosh --quiet --eval 'quit(db.adminCommand({ping:1}).ok ? 0 : 1)'; then break; fi
+            sleep 1
+          done
+          docker exec -i -e MONGO_RS_HOST=127.0.0.1:27017 mongodb mongosh --quiet < backend/scripts/init-replica-set.js
+      - run: cd backend && npm run db:setup
+      - run: cd backend && npm run prisma:seed
+      - run: cd backend && npm run db:check
+      - run: cd backend && npm run db:test
       - run: cd backend && npm run build
-        env:
-          DATABASE_URL: postgresql://test_user:test_pass@localhost:5432/test_db
 
   test-frontend:
     runs-on: ubuntu-latest

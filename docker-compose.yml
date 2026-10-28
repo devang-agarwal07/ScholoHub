@@ -1,24 +1,29 @@
-version: '3.8'
-
 services:
-  # ─── PostgreSQL ─────────────────────────────────────────
-  postgres:
-    image: postgres:16-alpine
+  # ─── MongoDB replica set (required for Prisma transactions) ───
+  mongodb:
+    image: mongo:8.0
     container_name: scholarship-db
     restart: unless-stopped
-    environment:
-      POSTGRES_USER: scholarship_user
-      POSTGRES_PASSWORD: scholarship_pass
-      POSTGRES_DB: scholarship_db
+    command: ['mongod', '--replSet', 'rs0', '--bind_ip_all']
     ports:
-      - '5432:5432'
+      - '127.0.0.1:27018:27017'
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - mongodb_data:/data/db
     healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U scholarship_user -d scholarship_db']
+      test: ['CMD', 'mongosh', '--quiet', '--eval', 'quit(db.adminCommand({ping:1}).ok ? 0 : 1)']
       interval: 10s
       timeout: 5s
       retries: 5
+
+  mongodb-init:
+    image: mongo:8.0
+    restart: 'no'
+    volumes:
+      - ./backend/scripts/init-replica-set.js:/init-replica-set.js:ro
+    entrypoint: ['mongosh', 'mongodb://mongodb:27017/admin?directConnection=true', '--quiet', '/init-replica-set.js']
+    depends_on:
+      mongodb:
+        condition: service_healthy
 
   # ─── Redis ──────────────────────────────────────────────
   redis:
@@ -58,7 +63,7 @@ services:
     ports:
       - '5000:5000'
     environment:
-      DATABASE_URL: postgresql://scholarship_user:scholarship_pass@postgres:5432/scholarship_db
+      DATABASE_URL: mongodb://mongodb:27017/scholarship_db?replicaSet=rs0&directConnection=true&serverSelectionTimeoutMS=5000
       REDIS_URL: redis://redis:6379
       JWT_SECRET: super_secret_jwt_key_change_in_production_32
       JWT_REFRESH_SECRET: super_secret_refresh_key_change_prod_32
@@ -73,8 +78,10 @@ services:
       PORT: 5000
       NODE_ENV: development
     depends_on:
-      postgres:
+      mongodb:
         condition: service_healthy
+      mongodb-init:
+        condition: service_completed_successfully
       redis:
         condition: service_healthy
       minio:
@@ -93,5 +100,5 @@ services:
       - backend
 
 volumes:
-  postgres_data:
+  mongodb_data:
   minio_data:

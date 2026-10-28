@@ -42,6 +42,7 @@ export async function addEmailJob(data: {
   template: string;
   context: Record<string, unknown>;
 }): Promise<void> {
+  if (!process.env.REDIS_URL) return;
   try {
     const queue = getEmailQueue();
     await queue.add('send-email', data, {
@@ -58,6 +59,7 @@ export async function addReportJob(data: {
   filters: Record<string, unknown>;
   requestedBy: string;
 }): Promise<string | null> {
+  if (!process.env.REDIS_URL) return null;
   try {
     const queue = getReportQueue();
     const job = await queue.add('generate-report', data, {

@@ -1,5 +1,7 @@
 import bcrypt from 'bcryptjs';
-import prisma from '../src/config/database';
+import { PrismaClient } from '@prisma/client';
+
+const prisma = new PrismaClient();
 
 const Role = {
   STUDENT: 'STUDENT',
@@ -10,24 +12,23 @@ const Role = {
 };
 
 async function main() {
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error('Demo seed is disabled in production.');
+  }
   console.log('🌱 Seeding database...\n');
 
-  // Clean existing data
-  await prisma.auditLog.deleteMany();
-  await prisma.notification.deleteMany();
-  await prisma.workflowAction.deleteMany();
-  await prisma.documentReview.deleteMany();
-  await prisma.document.deleteMany();
-  await prisma.application.deleteMany();
-  await prisma.scholarship.deleteMany();
-  await prisma.profile.deleteMany();
-  await prisma.user.deleteMany();
-
+  // Add demo records only. Existing accounts, passwords and applications stay intact.
   const passwordHash = await bcrypt.hash('Password123!', 12);
+  const now = new Date();
+  const startYear = now.getMonth() >= 5 ? now.getFullYear() : now.getFullYear() - 1;
+  const academicYear = `${startYear}-${String(startYear + 1).slice(-2)}`;
+  const deadlineIn = (days: number) => new Date(now.getTime() + days * 24 * 60 * 60 * 1000);
 
   // ─── CREATE USERS ───────────────────────────────────────
-  const superAdmin = await prisma.user.create({
-    data: {
+  const superAdmin = await prisma.user.upsert({
+    where: { email: 'admin@scholarship.edu' },
+    update: {},
+    create: {
       email: 'admin@scholarship.edu',
       passwordHash,
       role: Role.SUPER_ADMIN,
@@ -42,8 +43,10 @@ async function main() {
   });
   console.log(`✅ Super Admin created: ${superAdmin.email}`);
 
-  const verifier = await prisma.user.create({
-    data: {
+  const verifier = await prisma.user.upsert({
+    where: { email: 'verifier@scholarship.edu' },
+    update: {},
+    create: {
       email: 'verifier@scholarship.edu',
       passwordHash,
       role: Role.VERIFIER,
@@ -59,8 +62,10 @@ async function main() {
   });
   console.log(`✅ Verifier created: ${verifier.email}`);
 
-  const committee = await prisma.user.create({
-    data: {
+  const committee = await prisma.user.upsert({
+    where: { email: 'committee@scholarship.edu' },
+    update: {},
+    create: {
       email: 'committee@scholarship.edu',
       passwordHash,
       role: Role.COMMITTEE,
@@ -76,8 +81,10 @@ async function main() {
   });
   console.log(`✅ Committee member created: ${committee.email}`);
 
-  const student = await prisma.user.create({
-    data: {
+  const student = await prisma.user.upsert({
+    where: { email: 'student@scholarship.edu' },
+    update: {},
+    create: {
       email: 'student@scholarship.edu',
       passwordHash,
       role: Role.STUDENT,
@@ -99,9 +106,12 @@ async function main() {
   console.log(`✅ Student created: ${student.email}`);
 
   // ─── CREATE SCHOLARSHIPS ────────────────────────────────
-  const meritScholarship = await prisma.scholarship.create({
-    data: {
-      name: 'National Merit Scholarship 2025-26',
+  const meritScholarship = await prisma.scholarship.upsert({
+    where: { id: 'demo-scholarship-merit' },
+    update: {},
+    create: {
+      id: 'demo-scholarship-merit',
+      name: `National Merit Scholarship ${academicYear}`,
       description:
         'A prestigious merit-based scholarship for undergraduate students with outstanding academic performance. This scholarship aims to support talented students from all disciplines who demonstrate exceptional academic achievement and leadership qualities.',
       totalBudget: 5000000,
@@ -118,15 +128,18 @@ async function main() {
         'id_proof',
         'institution_letter',
       ],
-      applicationDeadline: new Date('2026-08-31'),
-      academicYear: '2025-26',
+      applicationDeadline: deadlineIn(90),
+      academicYear,
     },
   });
   console.log(`✅ Scholarship created: ${meritScholarship.name}`);
 
-  const needBasedScholarship = await prisma.scholarship.create({
-    data: {
-      name: 'Vidyalakshmi Need-Based Scholarship 2025-26',
+  const needBasedScholarship = await prisma.scholarship.upsert({
+    where: { id: 'demo-scholarship-need-based' },
+    update: {},
+    create: {
+      id: 'demo-scholarship-need-based',
+      name: `Vidyalakshmi Need-Based Scholarship ${academicYear}`,
       description:
         'A need-based financial assistance program designed to support economically disadvantaged students pursuing higher education. The scholarship covers tuition fees and provides a monthly stipend for living expenses.',
       totalBudget: 10000000,
@@ -144,15 +157,19 @@ async function main() {
         'bank_statement',
         'id_proof',
       ],
-      applicationDeadline: new Date('2026-09-15'),
-      academicYear: '2025-26',
+      applicationDeadline: deadlineIn(120),
+      academicYear,
     },
   });
   console.log(`✅ Scholarship created: ${needBasedScholarship.name}`);
 
   // ─── CREATE SAMPLE APPLICATION ──────────────────────────
-  const application = await prisma.application.create({
-    data: {
+  const application = await prisma.application.upsert({
+    where: {
+      studentId_scholarshipId: { studentId: student.id, scholarshipId: meritScholarship.id },
+    },
+    update: {},
+    create: {
       studentId: student.id,
       scholarshipId: meritScholarship.id,
       status: 'DRAFT',
@@ -170,8 +187,11 @@ async function main() {
   console.log(`✅ Sample application created (DRAFT): ${application.id}`);
 
   // ─── CREATE NOTIFICATIONS ──────────────────────────────
-  await prisma.notification.create({
-    data: {
+  await prisma.notification.upsert({
+    where: { id: 'demo-welcome-student' },
+    update: {},
+    create: {
+      id: 'demo-welcome-student',
       userId: student.id,
       title: 'Welcome to the Scholarship Portal!',
       message: 'Your account has been created. Explore available scholarships and apply today.',
@@ -180,7 +200,8 @@ async function main() {
 
   console.log('\n✨ Seeding completed successfully!\n');
   console.log('─────────────────────────────────────');
-  console.log('  Login Credentials (all passwords: Password123!)');
+  console.log('  New demo accounts use password: Password123!');
+  console.log('  Existing account passwords are not changed.');
   console.log('─────────────────────────────────────');
   console.log(`  Super Admin : admin@scholarship.edu`);
   console.log(`  Verifier    : verifier@scholarship.edu`);
