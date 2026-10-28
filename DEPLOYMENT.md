@@ -124,6 +124,8 @@ Update the Render backend's `FRONTEND_URL` to the Vercel production URL and rede
 
 ## References
 
+The CI workflow is provided at `.github/workflow-templates/deploy.yml`. It is inactive because the GitHub authorization used for this upload does not include the `workflow` permission. To enable GitHub Actions later, use GitHub's web editor or authorization with that permission to move the template to `.github/workflows/deploy.yml`. This is optional for Render deployment.
+
 - MongoDB Atlas: https://www.mongodb.com/docs/atlas/tutorial/deploy-free-tier-cluster/
 - Atlas connection prerequisites: https://www.mongodb.com/docs/atlas/connect-to-database-deployment/
 - Render Express deployment: https://render.com/docs/deploy-node-express-app
