@@ -34,8 +34,12 @@ axiosClient.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
+    // Public auth failures (especially incorrect credentials) cannot be fixed
+    // by refreshing a session. Preserve the endpoint's own error for the form.
+    const isPublicAuthRequest = /(?:^|\/)auth\/(?:login|register|refresh|forgot-password|reset-password)(?:[/?#]|$)/.test(originalRequest?.url || '');
 
-    if (error.response?.status === 401 && !originalRequest._retry) {
+    if (originalRequest && error.response?.status === 401 && !originalRequest._retry && !isPublicAuthRequest) {
+      originalRequest._retry = true;
       if (isRefreshing) {
         return new Promise((resolve, reject) => {
           failedQueue.push({
@@ -48,7 +52,6 @@ axiosClient.interceptors.response.use(
         });
       }
 
-      originalRequest._retry = true;
       isRefreshing = true;
 
       try {
