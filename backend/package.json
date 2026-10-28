@@ -13,6 +13,7 @@
     "db:push": "prisma db push",
     "db:check": "tsx scripts/check-database.ts",
     "db:test": "tsx scripts/verify-database.ts",
+    "test:deployment": "tsx scripts/verify-deployment.ts",
     "db:setup": "prisma generate && prisma db push && tsx scripts/check-database.ts",
     "prisma:seed": "tsx prisma/seed.ts",
     "test": "jest --passWithNoTests"

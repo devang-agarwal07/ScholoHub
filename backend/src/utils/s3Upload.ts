@@ -2,6 +2,7 @@ import { v2 as cloudinary } from 'cloudinary';
 import streamifier from 'streamifier';
 import fs from 'fs';
 import path from 'path';
+import { storeDocument, storedDocumentUrl } from './documentStorage';
 
 // Local uploads directory
 const uploadsDir = path.resolve(process.cwd(), 'uploads');
@@ -54,6 +55,11 @@ export async function uploadToS3(
     });
   }
 
+  // Hosted uploads persist in Atlas when no external file store is configured.
+  if (process.env.NODE_ENV === 'production' || process.env.DOCUMENT_STORAGE === 'mongodb') {
+    return storeDocument(fileBuffer, key, contentType);
+  }
+
   // Local storage fallback
   const filePath = path.join(uploadsDir, key);
   const fileDir = path.dirname(filePath);
@@ -74,6 +80,7 @@ export async function uploadToS3(
 }
 
 export async function getSignedDownloadUrl(key: string): Promise<string> {
+  if (key.startsWith('mongodb:')) return storedDocumentUrl(key);
   if (hasCloudinary) {
     const url = cloudinary.url(key, { secure: true });
     return url;

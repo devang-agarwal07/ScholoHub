@@ -3,7 +3,7 @@ import { PrismaClient } from '@prisma/client';
 const prisma = new PrismaClient();
 const collections = [
   'users', 'profiles', 'scholarships', 'applications', 'documents',
-  'document_reviews', 'workflow_actions', 'notifications', 'audit_logs',
+  'document_reviews', 'workflow_actions', 'notifications', 'audit_logs', 'stored_files',
 ];
 
 async function main() {

@@ -16,7 +16,7 @@ const registerSchema = z.object({
   email: z.string().email('Please enter a valid email'),
   password: z.string().min(8, 'Password must be at least 8 characters'),
   confirmPassword: z.string(),
-  role: z.enum(['STUDENT', 'VERIFIER', 'COMMITTEE', 'ADMIN', 'SUPER_ADMIN']).default('STUDENT'),
+  role: z.literal('STUDENT').default('STUDENT'),
 }).refine((data) => data.password === data.confirmPassword, {
   message: "Passwords don't match",
   path: ['confirmPassword'],
@@ -76,21 +76,6 @@ export default function Register() {
               <Label htmlFor="reg-email">Email</Label>
               <Input id="reg-email" type="email" placeholder="you@example.com" {...formRegister('email')} />
               {errors.email && <p className="text-sm text-red-500">{errors.email.message}</p>}
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="role">Account Type</Label>
-              <select
-                id="role"
-                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                {...formRegister('role')}
-              >
-                <option value="STUDENT">Student</option>
-                <option value="VERIFIER">Verifier</option>
-                <option value="COMMITTEE">Committee Member</option>
-                <option value="ADMIN">Admin</option>
-              </select>
-              {errors.role && <p className="text-sm text-red-500">{errors.role.message}</p>}
             </div>
 
             <div className="space-y-2">

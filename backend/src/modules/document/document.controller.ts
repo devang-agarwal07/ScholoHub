@@ -39,7 +39,7 @@ export class DocumentController {
 
   async getSignedUrl(req: Request, res: Response, next: NextFunction) {
     try {
-      const result = await documentService.getSignedUrl(req.params.id);
+      const result = await documentService.getSignedUrl(req.params.id, req.user!.userId, req.user!.role);
       res.json(result);
     } catch (error) {
       next(error);

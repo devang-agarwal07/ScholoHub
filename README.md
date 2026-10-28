@@ -174,7 +174,7 @@ Use MongoDB Atlas for the cloud database. Hosting the database does not require 
 
 `render.yaml` defines a `scholohub` web service that serves the React frontend and API on one HTTPS origin. Supply the Atlas URI as a backend secret. See [DEPLOYMENT.md](DEPLOYMENT.md) for the exact commands and settings, including the option to host the frontend separately. A separate Vercel deployment is optional.
 
-The upload helper uses Cloudinary when `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, and `CLOUDINARY_API_SECRET` are configured. Configure persistent cloud file storage for hosted document uploads; MongoDB stores metadata, not the uploaded files.
+The upload helper uses Cloudinary when `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, and `CLOUDINARY_API_SECRET` are configured. Otherwise hosted uploads persist in MongoDB's `stored_files` collection and use short-lived signed download links. Local development can opt into the same storage with `DOCUMENT_STORAGE=mongodb`.
 
 ### Prerequisites
 

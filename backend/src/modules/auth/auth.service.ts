@@ -20,7 +20,7 @@ class AuthService {
     }
 
     const passwordHash = await hashPassword(data.password);
-    const role = data.role || Role.STUDENT;
+    const role = Role.STUDENT;
 
     const user = await prisma.user.create({
       data: {

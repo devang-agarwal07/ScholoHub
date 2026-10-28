@@ -38,7 +38,7 @@ npm run db:check
 npm run db:test
 ```
 
-The setup creates nine collections: `users`, `profiles`, `scholarships`, `applications`, `documents`, `document_reviews`, `workflow_actions`, `notifications`, and `audit_logs`. In Atlas, open **Browse Collections** and choose `scholarship_db` to inspect them. Database verification rolls back its temporary test records.
+The setup creates nine core collections: `users`, `profiles`, `scholarships`, `applications`, `documents`, `document_reviews`, `workflow_actions`, `notifications`, and `audit_logs`, plus `stored_files` for persistent document content. In Atlas, open **Browse Collections** and choose `scholarship_db` to inspect them. Database verification rolls back its temporary test records.
 
 For a demonstration environment only, you can optionally add sample users, two scholarships and a draft application:
 
@@ -46,7 +46,7 @@ For a demonstration environment only, you can optionally add sample users, two s
 npm run prisma:seed
 ```
 
-New demo accounts are `admin@scholarship.edu`, `verifier@scholarship.edu`, `committee@scholarship.edu`, and `student@scholarship.edu`, with password `Password123!`. This seed preserves existing data and passwords and refuses to run with `NODE_ENV=production`. Do not use these shared demo credentials for a real deployment; register your own accounts with unique passwords instead. The current registration form supports choosing an account role and is intended for a demonstration workflow.
+New demo accounts are `admin@scholarship.edu`, `verifier@scholarship.edu`, `committee@scholarship.edu`, and `student@scholarship.edu`, with password `Password123!`. This seed preserves existing data and passwords and refuses to run with `NODE_ENV=production`. Do not use these shared demo credentials for a real deployment. Public registration creates student accounts only; staff roles must be provisioned through trusted database administration. Existing staff accounts keep their roles.
 
 ## 3. Deploy the entire app on one Render service (recommended)
 
@@ -54,7 +54,7 @@ Create a Render **Web Service** connected to `devang-agarwal07/ScholoHub`, branc
 
 | Setting | Value |
 | --- | --- |
-| Build Command | `cd backend && npm ci && npm run build && cd ../frontend && npm ci && npm run build` |
+| Build Command | `cd backend && npm ci --include=dev && npm run build && cd ../frontend && npm ci --include=dev && npm run build` |
 | Start Command | `cd backend && npm run start:cloud` |
 | Health Check | `/api/health` |
 | `NODE_ENV` | `production` |
@@ -66,7 +66,7 @@ Create a Render **Web Service** connected to `devang-agarwal07/ScholoHub`, branc
 
 Add Render's outbound IP ranges to Atlas as described in step 1, then deploy. The service URL serves the React app, its deep links, and `/api/*`. Refresh tokens use the HTTP-only cookie, so they do not need to be exposed in browser storage. If setting `FRONTEND_URL` for password-reset links, use this same service URL; Render's `RENDER_EXTERNAL_URL` is used when it is omitted.
 
-For uploads, configure the Cloudinary variables described below. Once the single service is live, skip the separate service setup and go to **Verify the deployed application**.
+Hosted uploads automatically persist in Atlas's `stored_files` collection when Cloudinary is not configured. Downloads use links valid for five minutes, issued after document authorization. Each upload is limited to 5 MB and counts toward the Atlas cluster's storage allowance. Once the single service is live, skip the separate service setup and go to **Verify the deployed application**.
 
 ## Alternative: deploy the backend and frontend separately
 
@@ -94,7 +94,7 @@ Add these environment variables in Render. Each JWT secret must be a different r
 | `JWT_EXPIRES_IN` | `15m` |
 | `JWT_REFRESH_EXPIRES_IN` | `7d` |
 
-Before testing document uploads, configure a Cloudinary account and set `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, and `CLOUDINARY_API_SECRET` in the backend's Render environment. The current upload helper stores files in Cloudinary when all three are present. Without them, it falls back to local disk and produces localhost file links, which are unsuitable for the hosted app. MongoDB stores document metadata and links, not the file contents.
+Cloudinary is optional: set `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, and `CLOUDINARY_API_SECRET` to use it instead of MongoDB file storage. Without them, production uploads persist in Atlas, with signed download links. Development mode uses local disk unless `DOCUMENT_STORAGE=mongodb` is set.
 
 If using email/background jobs, provision a compatible Redis service and set `REDIS_URL` plus the appropriate SMTP settings. Otherwise, leave `REDIS_URL` unset; queue producers and workers skip jobs when it is absent, so email is unavailable. Do not set it to a localhost Redis address on Render.
 
@@ -125,7 +125,7 @@ Deploy the static site, then copy its actual HTTPS URL. Update `FRONTEND_URL` on
 1. Open the frontend URL and register or sign in.
 2. Confirm scholarship and application pages load.
 3. Verify new records appear under Atlas → Browse Collections → `scholarship_db`.
-4. Upload a document after configuring Cloudinary and confirm its link opens from another device.
+4. Upload a document and confirm its signed link opens. Hosted uploads persist in MongoDB unless Cloudinary is configured.
 5. Test a direct frontend route such as `/login` with a page refresh.
 
 If startup reports a database connection timeout, check the Atlas cluster status, URI, database password and IP access list. If login returns 401, verify the account exists in the same Atlas database and that its password is correct. If frontend requests fail, verify `VITE_API_URL` and inspect the backend's Render logs.

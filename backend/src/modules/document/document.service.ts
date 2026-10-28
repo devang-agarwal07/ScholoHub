@@ -103,13 +103,18 @@ class DocumentService {
     return document;
   }
 
-  async getSignedUrl(documentId: string) {
+  async getSignedUrl(documentId: string, userId: string, userRole: string) {
     const document = await prisma.document.findUnique({
       where: { id: documentId },
+      include: { application: { select: { studentId: true } } },
     });
 
     if (!document) {
       throw new AppError('Document not found.', 404);
+    }
+
+    if (userRole === 'STUDENT' && document.application.studentId !== userId) {
+      throw new AppError('You do not have access to this document.', 403);
     }
 
     try {

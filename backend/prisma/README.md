@@ -15,10 +15,11 @@ For the hosted database, configure the Atlas URI in `DATABASE_URL` (see `.env.ex
 | `workflow_actions` | Actor, workflow stage, action, remarks, timestamp | Application and user references; indexes for application timeline and actor history |
 | `notifications` | Recipient ID, title, message, read state, timestamp | Recipient/date and recipient/read-state indexes |
 | `audit_logs` | Actor ID, action, entity type/ID, JSON metadata, timestamp | Actor/date and entity/history indexes |
+| `stored_files` | Binary upload content, content type, storage key, timestamp | Unique storage key; used by production when Cloudinary is not configured |
 
 The existing application supports STUDENT, VERIFIER, COMMITTEE, ADMIN and SUPER_ADMIN roles. Application statuses cover DRAFT, SUBMITTED, UNDER_VERIFICATION, VERIFICATION_COMPLETE, UNDER_REVIEW, APPROVED, REJECTED, WAITLISTED and DISBURSED. Documents are PENDING, VERIFIED or REJECTED. These remain string fields, with allowed values and transitions handled by the backend. MongoDB does not enforce foreign keys: Prisma manages declared relations, so use the application/Prisma when editing related records. Notification and audit user IDs are scalar references.
 
-Eligibility and academic details use JSON to match the current application. Budgets and income retain the app's existing numeric representation. Document files stay in the configured storage; MongoDB holds their metadata. Budget utilization is calculated from approved/disbursed applications and scholarship award amounts.
+Eligibility and academic details use JSON to match the current application. Budgets and income retain the app's existing numeric representation. Uploaded files persist in `stored_files` in production unless Cloudinary is configured. The 5 MB file limit fits within MongoDB's document-size limit, and downloads use expiring signed links. Budget utilization is calculated from approved/disbursed applications and scholarship award amounts.
 
 Run from `backend/`:
 

@@ -163,3 +163,14 @@ model AuditLog {
   @@index([entity, entityId, createdAt(sort: Desc)])
   @@map("audit_logs")
 }
+
+// MongoDB documents support the application's 5 MB upload limit.
+model StoredFile {
+  id          String   @id @default(cuid()) @map("_id")
+  key         String   @unique
+  content     Bytes
+  contentType String
+  createdAt   DateTime @default(now())
+
+  @@map("stored_files")
+}

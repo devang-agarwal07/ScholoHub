@@ -7,7 +7,7 @@ const email = `db-check-${randomUUID()}@example.invalid`;
 const rollback = new Error('Intentional verification rollback');
 
 async function main() {
-  // Write all nine collections in one transaction, inspect the relations, then roll it back.
+  // Write the core collections and persistent file storage in one transaction, then roll back.
   await assert.rejects(prisma.$transaction(async (tx) => {
     const user = await tx.user.create({
       data: {
@@ -42,6 +42,11 @@ async function main() {
     await tx.auditLog.create({
       data: { userId: user.id, action: 'CHECK', entity: 'Application', entityId: application.id },
     });
+    const file = await tx.storedFile.create({
+      data: { key: email, content: Buffer.from('persistent document check'), contentType: 'application/pdf' },
+    });
+    const persistedFile = await tx.storedFile.findUniqueOrThrow({ where: { id: file.id } });
+    assert.equal(Buffer.from(persistedFile.content).toString(), 'persistent document check');
     const stored = await tx.application.findUniqueOrThrow({
       where: { id: application.id },
       include: {
@@ -56,8 +61,9 @@ async function main() {
     assert.equal(await tx.notification.count({ where: { userId: user.id } }), 1);
     assert.equal(await tx.auditLog.count({ where: { userId: user.id } }), 1);
     throw rollback;
-  }), (error) => error === rollback);
+  }, { timeout: 30000, maxWait: 10000 }), (error) => error === rollback);
   assert.equal(await prisma.user.count({ where: { email } }), 0);
+  assert.equal(await prisma.storedFile.count({ where: { key: email } }), 0);
 
   // Force each unique constraint to reject a duplicate, rolling back its temporary records.
   for (const constraint of ['email', 'application'] as const) {
@@ -81,14 +87,18 @@ async function main() {
         attemptedDuplicate = true;
         await tx.application.create({ data });
       }
-    }), (error: unknown) => attemptedDuplicate &&
+    }, { timeout: 30000, maxWait: 10000 }), (error: unknown) => attemptedDuplicate &&
       typeof error === 'object' && error !== null && 'code' in error && error.code === 'P2002');
     assert.equal(await prisma.user.count({ where: { email } }), 0);
   }
-  console.log('PASS: writes across 9 collections, related reads, unique email/application constraints, transaction rollback.');
+  console.log('PASS: writes across 10 collections, binary file storage, related reads, unique email/application constraints, transaction rollback.');
   console.log('Verification records were rolled back; existing data was preserved.');
 }
 
 main()
-  .catch(() => { console.error('Database verification failed. Run npm run db:setup and inspect the database.'); process.exitCode = 1; })
+  .catch((error) => {
+    const message = error instanceof Error ? error.message.replace(/mongodb(?:\+srv)?:\/\/[^\s"']+/g, '[MongoDB URI]') : 'Unknown error';
+    console.error('Database verification failed:', message);
+    process.exitCode = 1;
+  })
   .finally(() => prisma.$disconnect());
